@@ -429,10 +429,9 @@ function render() {
     ${!state.adminUnlocked ? `
       <div class="admin-unlock">
         <p>Enter the admin password to manage votes.</p>
-        <input type="password" class="admin-input" placeholder="Admin password" value="${state.adminKey}"
-          oninput="setState({adminKey:this.value})"
-          onkeydown="if(event.key==='Enter'){if(state.adminKey==='${ADMIN_PASS}')setState({adminUnlocked:true});else showToast('Incorrect password','error');}">
-        <button class="admin-unlock-btn" onclick="if(state.adminKey==='${ADMIN_PASS}')setState({adminUnlocked:true});else showToast('Incorrect password','error')">Unlock</button>
+        <input type="password" class="admin-input" id="adminKeyInput" placeholder="Admin password"
+          onkeydown="if(event.key==='Enter'){var v=this.value;if(v==='${ADMIN_PASS}')setState({adminUnlocked:true,adminKey:v});else showToast('Incorrect password','error');}">
+        <button class="admin-unlock-btn" onclick="var v=document.getElementById('adminKeyInput').value;if(v==='${ADMIN_PASS}')setState({adminUnlocked:true,adminKey:v});else showToast('Incorrect password','error')">Unlock</button>
       </div>
     ` : `
       <div class="admin-header">
