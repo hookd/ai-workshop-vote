@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CM/ST AI Workshop Team Vote</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: #f5f5f7; color: #111827; min-height: 100vh; }
+  #app { max-width: 780px; margin: 0 auto; padding: 1.5rem 1rem 4rem; }
+
+  /* Banner */
+  .banner { position: relative; height: 160px; border-radius: 16px; overflow: hidden; margin-bottom: 2rem; }
+  .banner canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  .banner-content { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; padding: 0 28px; background: linear-gradient(90deg, rgba(10,10,30,0.72) 0%, rgba(10,10,30,0.3) 70%, transparent 100%); }
+  .banner-title { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .banner-icon { width: 34px; height: 34px; border-radius: 9px; background: linear-gradient(135deg, #6366f1, #a855f7); display: flex; align-items: center; justify-content: center; box-shadow: 0 0 16px rgba(99,102,241,0.5); font-size: 18px; flex-shrink: 0; }
+  .banner-title h1 { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; color: #fff; text-shadow: 0 2px 12px rgba(0,0,0,0.4); }
+  .banner-rules { list-style: disc; padding-left: 18px; display: flex; flex-direction: column; gap: 3px; }
+  .banner-rules li { font-size: 12px; color: rgba(255,255,255,0.75); font-weight: 500; }
+  .banner-rules strong { color: #a5b4fc; }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 6px; border-bottom: 2px solid #e5e7eb; margin-bottom: 1.5rem; }
+  .tab { padding: 10px 22px; font-size: 14px; font-weight: 400; border: none; cursor: pointer; border-radius: 8px 8px 0 0; background: #efefef; color: #6b7280; border-bottom: 2px solid transparent; margin-bottom: -2px; display: flex; align-items: center; gap: 6px; transition: all 0.15s; font-family: inherit; opacity: 0.55; }
+  .tab.active { font-weight: 700; background: #fff; color: #6366f1; border-bottom: 2px solid #6366f1; box-shadow: 0 -2px 8px rgba(99,102,241,0.08); opacity: 1; }
+
+  /* Voter Picker */
+  .picker-wrap { margin-bottom: 1.5rem; position: relative; max-width: 420px; }
+  .picker-label { font-size: 13px; font-weight: 600; display: block; margin-bottom: 6px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; }
+  .picker-btn { width: 100%; padding: 9px 12px; font-size: 14px; border-radius: 8px; text-align: left; border: 1.5px solid #d1d5db; background: #fff; cursor: pointer; font-family: inherit; display: flex; align-items: center; gap: 8px; transition: all 0.15s; }
+  .picker-btn.open { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.15); }
+  .picker-btn .placeholder { color: #9ca3af; flex: 1; }
+  .picker-btn .voter-name { font-weight: 600; flex: 1; }
+  .picker-btn .team-label { font-size: 11px; color: #6b7280; }
+  .picker-btn .arrow { color: #9ca3af; font-size: 11px; transition: transform 0.2s; }
+  .picker-btn.open .arrow { transform: rotate(180deg); }
+  .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .picker-dropdown { position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 100; background: #fff; border: 1.5px solid #6366f1; border-radius: 10px; box-shadow: 0 8px 32px rgba(0,0,0,0.18); overflow: hidden; }
+  .picker-search-wrap { padding: 8px 10px; border-bottom: 1px solid #e5e7eb; background: #fff; }
+  .picker-search { width: 100%; padding: 6px 10px; font-size: 13px; border-radius: 6px; border: 1px solid #d1d5db; background: #f3f4f6; color: #111827; font-family: inherit; }
+  .picker-list { max-height: 280px; overflow-y: auto; background: #fff; }
+  .picker-group-header { padding: 5px 12px 3px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; background: #f3f4f6; display: flex; align-items: center; gap: 6px; border-left: 3px solid; }
+  .picker-group-header span.focus { font-weight: 400; opacity: 0.7; }
+  .picker-member { padding: 8px 14px 8px 18px; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 8px; background: #fff; transition: background 0.1s; }
+  .picker-member:hover, .picker-member.selected { background: #f0f0ff; }
+  .picker-member .member-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .picker-member .check { margin-left: auto; font-size: 12px; }
+  .picker-empty { padding: 16px; font-size: 13px; color: #6b7280; text-align: center; background: #fff; }
+
+  /* Vote status bar */
+  .vote-status { background: #f3f4f6; border-radius: 10px; padding: 10px 14px; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 12px; }
+  .vote-status .remaining-label { font-size: 13px; color: #6b7280; }
+  .vote-status .remaining-num { font-family: 'DM Mono', monospace; font-weight: 600; font-size: 20px; color: #6366f1; }
+  .vote-status .pips { display: flex; gap: 4px; margin-left: auto; }
+  .pip { width: 12px; height: 12px; border-radius: 3px; background: #d1d5db; transition: background 0.2s; }
+  .pip.filled { background: #6366f1; }
+
+  /* Submitted banner */
+  .submitted-banner { background: #f0fdf4; border: 1px solid #86efac; border-radius: 10px; padding: 1rem 1.25rem; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; }
+  .submitted-banner .title { font-weight: 600; color: #16a34a; font-size: 14px; }
+  .submitted-banner .detail { font-size: 12px; color: #6b7280; margin-top: 2px; }
+  .change-btn { font-size: 12px; padding: 6px 12px; border-radius: 6px; cursor: pointer; border: 1px solid #d1d5db; background: #fff; color: #111827; font-family: inherit; }
+
+  /* Team cards */
+  .team-list { display: grid; gap: 8px; }
+  .team-card { border-radius: 10px; border: 1.5px solid #e5e7eb; background: #fff; padding: 10px 14px; display: flex; align-items: center; gap: 12px; transition: border-color 0.15s; }
+  .team-card.own { opacity: 0.5; background: #f3f4f6; }
+  .team-card.allocated { border-color: #6366f1; background: rgba(99,102,241,0.03); }
+  .team-badge { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 600; }
+  .team-info { flex: 1; min-width: 0; }
+  .team-name { font-weight: 600; font-size: 14px; }
+  .team-members { font-size: 11px; color: #6b7280; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .vote-controls { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .vote-btn { width: 28px; height: 28px; border-radius: 6px; border: 1px solid #d1d5db; background: transparent; cursor: pointer; font-size: 16px; font-weight: 700; color: #111827; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+  .vote-btn.plus { background: #6366f1; color: white; border-color: #6366f1; }
+  .vote-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  .vote-count { font-family: 'DM Mono', monospace; font-weight: 600; font-size: 16px; min-width: 16px; text-align: center; color: #6366f1; }
+  .vote-count.zero { color: #9ca3af; }
+  .alloc-badge { background: rgba(99,102,241,0.13); color: #6366f1; border-radius: 6px; padding: 3px 10px; font-family: 'DM Mono', monospace; font-weight: 600; font-size: 13px; flex-shrink: 0; }
+
+  /* Submit button */
+  .submit-btn { margin-top: 1.5rem; width: 100%; padding: 12px; border-radius: 10px; background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; border: none; font-size: 15px; font-weight: 600; cursor: pointer; font-family: inherit; transition: opacity 0.2s; }
+  .submit-btn:disabled { background: #e5e7eb; color: #9ca3af; cursor: not-allowed; }
+
+  /* Results */
+  .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 1.5rem; }
+  .stat-card { background: #f3f4f6; border-radius: 10px; padding: 12px 14px; }
+  .stat-label { font-size: 11px; color: #6b7280; margin-bottom: 4px; }
+  .stat-value { font-size: 24px; font-weight: 700; font-family: 'DM Mono', monospace; }
+  .results-list { display: grid; gap: 6px; }
+  .result-row { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; }
+  .result-rank { font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 600; color: #9ca3af; min-width: 22px; text-align: right; }
+  .result-badge { width: 30px; height: 30px; border-radius: 7px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-family: 'DM Mono', monospace; font-size: 10px; font-weight: 700; }
+  .result-name { font-weight: 600; font-size: 13px; min-width: 62px; flex-shrink: 0; }
+  .result-bar-wrap { flex: 1; height: 18px; background: #f3f4f6; border-radius: 5px; overflow: hidden; }
+  .result-bar { height: 100%; border-radius: 5px; transition: width 0.6s cubic-bezier(0.4,0,0.2,1); }
+  .result-total { font-family: 'DM Mono', monospace; font-weight: 700; font-size: 16px; min-width: 28px; text-align: right; }
+  .still-voting { margin-top: 1.5rem; background: #f3f4f6; border-radius: 10px; padding: 12px 14px; }
+  .still-voting-title { font-size: 12px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+  .still-voting-names { display: flex; flex-wrap: wrap; gap: 6px; }
+  .name-chip { font-size: 12px; background: #fff; border: 1px solid #e5e7eb; border-radius: 6px; padding: 3px 8px; }
+  .refresh-btn { margin-top: 1rem; font-size: 13px; padding: 7px 14px; border-radius: 8px; border: 1px solid #d1d5db; background: transparent; cursor: pointer; color: #6b7280; font-family: inherit; }
+
+  /* Admin */
+  .admin-unlock { max-width: 300px; }
+  .admin-unlock p { font-size: 13px; color: #6b7280; margin-bottom: 12px; }
+  .admin-input { width: 100%; padding: 9px 12px; font-size: 14px; border-radius: 8px; border: 1.5px solid #d1d5db; background: #fff; color: #111827; font-family: inherit; margin-bottom: 8px; }
+  .admin-unlock-btn { width: 100%; padding: 9px; border-radius: 8px; background: #6366f1; color: white; border: none; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; }
+  .admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+  .admin-header h2 { font-size: 16px; font-weight: 600; }
+  .reset-btn { font-size: 12px; padding: 6px 12px; border-radius: 7px; background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; cursor: pointer; font-weight: 600; font-family: inherit; }
+  .admin-vote-row { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: #f3f4f6; border-radius: 9px; border: 1px solid #e5e7eb; margin-bottom: 6px; }
+  .admin-vote-info { flex: 1; min-width: 0; }
+  .admin-vote-name { font-size: 13px; font-weight: 600; }
+  .admin-vote-team { font-size: 11px; color: #6b7280; margin-left: 6px; }
+  .admin-vote-detail { font-size: 11px; color: #6b7280; margin-top: 2px; }
+  .remove-btn { font-size: 11px; padding: 4px 9px; border-radius: 6px; background: #fee2e2; color: #dc2626; border: none; cursor: pointer; font-weight: 600; font-family: inherit; }
+
+  /* Toast */
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); color: white; padding: 10px 20px; border-radius: 10px; font-size: 13px; font-weight: 600; box-shadow: 0 4px 16px rgba(0,0,0,0.15); z-index: 9999; white-space: nowrap; pointer-events: none; }
+  .toast.success { background: #22c55e; }
+  .toast.error { background: #dc2626; }
+
+  .loading { color: #6b7280; font-size: 14px; padding: 2rem 0; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+const TEAMS = [
+  { id:1, name:"Team 1", focus:"ENG, EXA, TIO, UX", members:["Jothimani, Gunaseelan","Martin, Robert","Smyth, Megan","Stevens, Anne","White, Jonathan A."] },
+  { id:2, name:"Team 2", focus:"ARC, ENG", members:["Aduevskii, Aleksei","Brewell, Stephen","Grygorenko, Iaroslav","Patanjali, Srikanta"] },
+  { id:3, name:"Team 3", focus:"ARC, DSC, ENG, TIO", members:["Bilyi, Ivan","Hosseini Pozveh, Zahra","Jakkula, Sreekanth","Snow, Jonathan","Oscares, Gabriel"] },
+  { id:4, name:"Team 4", focus:"ARC, ENG, FIN, Security, UX", members:["Jenkins, Will","Lischke, Lars M.","McDowall, Mark","Robertson, Vaughan","Van Weert, Boudewijn"] },
+  { id:5, name:"Team 5", focus:"ARC, DEL/ENG, DSC, TIO, UX", members:["Fraser, Alec","Narravula, Sreekantha R.","Otten, Jacco","Velde, Bob van de"] },
+  { id:6, name:"Team 6", focus:"DSC, ENG, FIN", members:["Bogdanov, Mikhail","Hasdemir, Dicle","Rollings, Mark","Rowlands, Oli"] },
+  { id:7, name:"Team 7", focus:"ENG, TIO", members:["Denisov, Igor","Craciun Mocan, Lucian","Harris, Pascal","Spring, Lars Bo M."] },
+  { id:8, name:"Team 8", focus:"ENG, PROD, TIO", members:["Daniels, James E.","Dwivedi, Chanchal","Goldberg, Steven","Oguz, Canberk"] },
+  { id:9, name:"Team 9", focus:"ARC, DSC, ENG, UX", members:["Dart, Gregory","McKeighan, Lindsay","Varma, Shylendra","Simsek-Senel, Gorkem"] },
+  { id:10, name:"Team 10", focus:"ARC, ENG, TIO", members:["Gonzalvez, Christian","Hough, Adam","Sneddon, Duncan","Styles, David"] },
+  { id:11, name:"Team 11", focus:"ARC, ENG, TIO", members:["Hook, David P.","Pijnenburg, Thom","Prakash, Ashwani","Sharma, Kartik","Van Campenhout, Andrew"] },
+  { id:12, name:"Team 12", focus:"ARC, DSC, ENG, TIO", members:["Akhondi, Saber","Langridge, Chris","Scerri, Antony","Rimmer, Andrew J."] }
+];
+
+const PALETTE = ["#6366f1","#8b5cf6","#ec4899","#f97316","#eab308","#22c55e","#14b8a6","#06b6d4","#3b82f6","#a855f7","#f43f5e","#84cc16"];
+const MAX_VOTES = 3;
+const ADMIN_PASS = "workshop2026";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwH44vMjZo2M6pW8AfBsXza-jbp5yuuMt3X8b9k0htDOwWxDvMLBDK-wSP9sGGFTg/exec";
+
+const ALL_VOTERS = TEAMS.flatMap(t => t.members.map(m => ({ name: m, teamId: t.id })));
+
+async function dbGet() {
+  const res = await fetch(SCRIPT_URL, { redirect: "follow" });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const text = await res.text();
+  return JSON.parse(text) || {};
+}
+
+async function dbSet(votes) {
+  const res = await fetch(SCRIPT_URL, { method: "POST", redirect: "follow", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ votes }) });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+}
+
+function getTeamForMember(name) { return TEAMS.find(t => t.members.includes(name)); }
+
+// ── State ──────────────────────────────────────────────
+let state = {
+  view: "vote",
+  selectedVoter: "",
+  allocations: {},
+  votes: {},
+  submitted: false,
+  loading: true,
+  saving: false,
+  adminKey: "",
+  adminUnlocked: false,
+  toast: null,
+  pickerOpen: false,
+  pickerSearch: "",
+};
+
+function setState(patch) {
+  Object.assign(state, patch);
+  render();
+}
+
+// ── DB calls ───────────────────────────────────────────
+async function loadVotes() {
+  setState({ loading: true });
+  try {
+    const v = await dbGet();
+    setState({ votes: v, loading: false });
+    if (state.selectedVoter && v[state.selectedVoter]) {
+      setState({ submitted: true, allocations: v[state.selectedVoter] });
+    }
+  } catch(e) {
+    showToast("Could not load votes: " + e.message, "error");
+    setState({ loading: false });
+  }
+}
+
+async function handleSubmit() {
+  if (!state.selectedVoter || totalAllocated() === 0) return;
+  setState({ saving: true });
+  try {
+    const latest = await dbGet();
+    const newVotes = { ...latest, [state.selectedVoter]: state.allocations };
+    await dbSet(newVotes);
+    setState({ votes: newVotes, submitted: true, saving: false });
+    showToast("Your votes have been saved!");
+  } catch(e) {
+    showToast("Failed to save: " + e.message, "error");
+    setState({ saving: false });
+  }
+}
+
+async function handleAdminDelete(voterName) {
+  try {
+    const latest = await dbGet();
+    delete latest[voterName];
+    await dbSet(latest);
+    setState({ votes: latest });
+    showToast("Removed vote for " + voterName);
+  } catch(e) { showToast("Failed to remove vote.", "error"); }
+}
+
+async function handleAdminReset() {
+  if (!confirm("Reset ALL votes? This cannot be undone.")) return;
+  try {
+    await dbSet({});
+    setState({ votes: {} });
+    showToast("All votes reset.", "error");
+  } catch(e) { showToast("Failed to reset.", "error"); }
+}
+
+// ── Helpers ────────────────────────────────────────────
+function totalAllocated() { return Object.values(state.allocations).reduce((s,v)=>s+v,0); }
+function remaining() { return MAX_VOTES - totalAllocated(); }
+
+function changeAllocation(teamId, delta) {
+  const cur = state.allocations[teamId] || 0;
+  const newVal = Math.max(0, Math.min(cur + delta, cur + remaining()));
+  const alloc = { ...state.allocations };
+  if (newVal === 0) delete alloc[teamId]; else alloc[teamId] = newVal;
+  setState({ allocations: alloc });
+}
+
+function selectVoter(name) {
+  const existing = state.votes[name];
+  setState({ selectedVoter: name, pickerOpen: false, pickerSearch: "",
+    submitted: !!existing, allocations: existing || {} });
+}
+
+function showToast(msg, type="success") {
+  setState({ toast: { msg, type } });
+  setTimeout(() => setState({ toast: null }), 3000);
+}
+
+function tally() {
+  return TEAMS.map(t => {
+    const total = Object.values(state.votes).reduce((s,a) => s + (a[t.id]||0), 0);
+    return { ...t, total };
+  }).sort((a,b) => b.total - a.total);
+}
+
+// ── Neural Banner ──────────────────────────────────────
+let animFrame;
+function initBanner(canvas) {
+  if (!canvas) return;
+  cancelAnimationFrame(animFrame);
+  const ctx = canvas.getContext("2d");
+  const W = canvas.offsetWidth, H = canvas.offsetHeight;
+  canvas.width = W; canvas.height = H;
+  const nodes = Array.from({length:38}, ()=>({ x:Math.random()*W, y:Math.random()*H, vx:(Math.random()-.5)*.4, vy:(Math.random()-.5)*.4, r:Math.random()*2.5+1.5, pulse:Math.random()*Math.PI*2 }));
+  const signals = Array.from({length:14}, ()=>({ t:Math.random(), from:Math.floor(Math.random()*38), to:Math.floor(Math.random()*38), speed:Math.random()*.004+.002 }));
+  function draw() {
+    ctx.clearRect(0,0,W,H);
+    const bg = ctx.createLinearGradient(0,0,W,H);
+    bg.addColorStop(0,"#0a0a1e"); bg.addColorStop(.5,"#0d0b2a"); bg.addColorStop(1,"#080818");
+    ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+    nodes.forEach(n=>{ n.x+=n.vx; n.y+=n.vy; n.pulse+=.03; if(n.x<0||n.x>W)n.vx*=-1; if(n.y<0||n.y>H)n.vy*=-1; });
+    for(let i=0;i<nodes.length;i++) for(let j=i+1;j<nodes.length;j++) {
+      const dx=nodes[i].x-nodes[j].x, dy=nodes[i].y-nodes[j].y, dist=Math.sqrt(dx*dx+dy*dy);
+      if(dist<110){ ctx.beginPath(); ctx.moveTo(nodes[i].x,nodes[i].y); ctx.lineTo(nodes[j].x,nodes[j].y); ctx.strokeStyle=`rgba(139,92,246,${(1-dist/110)*.35})`; ctx.lineWidth=.8; ctx.stroke(); }
+    }
+    signals.forEach(s=>{ s.t+=s.speed; if(s.t>=1){s.t=0;s.from=Math.floor(Math.random()*nodes.length);s.to=Math.floor(Math.random()*nodes.length);} const a=nodes[s.from],b=nodes[s.to]; const px=a.x+(b.x-a.x)*s.t, py=a.y+(b.y-a.y)*s.t; const g=ctx.createRadialGradient(px,py,0,px,py,5); g.addColorStop(0,"rgba(167,139,250,.9)"); g.addColorStop(1,"rgba(167,139,250,0)"); ctx.beginPath(); ctx.arc(px,py,5,0,Math.PI*2); ctx.fillStyle=g; ctx.fill(); });
+    nodes.forEach(n=>{ const p=.5+.5*Math.sin(n.pulse); const g=ctx.createRadialGradient(n.x,n.y,0,n.x,n.y,n.r*3.5); g.addColorStop(0,`rgba(167,139,250,${.6+p*.4})`); g.addColorStop(.4,`rgba(99,102,241,${.3+p*.2})`); g.addColorStop(1,"rgba(99,102,241,0)"); ctx.beginPath(); ctx.arc(n.x,n.y,n.r*3.5,0,Math.PI*2); ctx.fillStyle=g; ctx.fill(); ctx.beginPath(); ctx.arc(n.x,n.y,n.r,0,Math.PI*2); ctx.fillStyle=`rgba(220,210,255,${.7+p*.3})`; ctx.fill(); });
+    animFrame = requestAnimationFrame(draw);
+  }
+  draw();
+}
+
+// ── Render ─────────────────────────────────────────────
+function render() {
+  const app = document.getElementById("app");
+  const tallyData = tally();
+  const maxV = Math.max(...tallyData.map(t=>t.total), 1);
+  const votersWhoVoted = Object.keys(state.votes);
+  const votersNotVoted = ALL_VOTERS.filter(v => !state.votes[v.name]).map(v => v.name);
+  const myTeamId = state.selectedVoter ? getTeamForMember(state.selectedVoter)?.id : null;
+  const tot = totalAllocated();
+  const rem = remaining();
+
+  // Filtered teams for picker
+  const filtered = TEAMS.map(t => ({ ...t, members: t.members.filter(m => m.toLowerCase().includes(state.pickerSearch.toLowerCase())) })).filter(t=>t.members.length>0);
+  const selTeam = state.selectedVoter ? getTeamForMember(state.selectedVoter) : null;
+
+  app.innerHTML = `
+  <div class="banner">
+    <canvas id="neuralCanvas"></canvas>
+    <div class="banner-content">
+      <div class="banner-title">
+        <div class="banner-icon">🗳</div>
+        <h1>CM/ST AI Workshop Team Vote</h1>
+      </div>
+      <ul class="banner-rules">
+        <li>Each person gets <strong>3 votes</strong></li>
+        <li>Allocate freely — all to one team or spread across multiple</li>
+        <li>You cannot vote for your own team</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab ${state.view==='vote'?'active':''}" onclick="setState({view:'vote'})">🗳 Vote</button>
+    <button class="tab ${state.view==='results'?'active':''}" onclick="setState({view:'results'})">📊 Results</button>
+    <button class="tab ${state.view==='admin'?'active':''}" onclick="setState({view:'admin'})">⚙ Admin</button>
+  </div>
+
+  ${state.view === 'vote' ? `
+  <div>
+    <!-- Voter Picker -->
+    <div class="picker-wrap" id="pickerWrap">
+      <label class="picker-label">Who are you?</label>
+      <button class="picker-btn ${state.pickerOpen?'open':''}" id="pickerBtn">
+        ${state.selectedVoter && selTeam ? `
+          <span class="dot" style="background:${PALETTE[selTeam.id-1]};box-shadow:0 0 6px ${PALETTE[selTeam.id-1]}"></span>
+          <span class="voter-name" style="color:${PALETTE[selTeam.id-1]}">${state.selectedVoter}</span>
+          <span class="team-label">Team ${selTeam.id}</span>
+        ` : `<span class="placeholder">Select your name…</span>`}
+        <span class="arrow">▼</span>
+      </button>
+      ${state.pickerOpen ? `
+      <div class="picker-dropdown" id="pickerDropdown">
+        <div class="picker-search-wrap">
+          <input class="picker-search" id="pickerSearch" placeholder="Search name…" value="${state.pickerSearch}" oninput="setState({pickerSearch:this.value})" autofocus>
+        </div>
+        <div class="picker-list">
+          ${filtered.map(t => `
+            <div class="picker-group-header" style="color:${PALETTE[t.id-1]};border-left-color:${PALETTE[t.id-1]}">
+              <span>${t.name}</span><span class="focus">— ${t.focus}</span>
+            </div>
+            ${t.members.map(m => `
+              <div class="picker-member ${state.selectedVoter===m?'selected':''}" onclick="selectVoter(${JSON.stringify(m)})">
+                <span class="member-dot" style="background:${PALETTE[t.id-1]};box-shadow:0 0 5px ${PALETTE[t.id-1]}99"></span>
+                <span style="color:${PALETTE[t.id-1]};font-weight:${state.selectedVoter===m?700:400}">${m}</span>
+                ${state.selectedVoter===m?`<span class="check" style="color:${PALETTE[t.id-1]}">✓</span>`:''}
+              </div>
+            `).join('')}
+          `).join('')}
+          ${filtered.length===0?'<div class="picker-empty">No names found</div>':''}
+        </div>
+      </div>` : ''}
+    </div>
+
+    ${state.selectedVoter ? `
+      ${state.submitted ? `
+        <div class="submitted-banner">
+          <div>
+            <div class="title">✓ Your votes are submitted</div>
+            <div class="detail">${Object.entries(state.allocations).map(([tid,n])=>`Team ${tid} ×${n}`).join(' · ')}</div>
+          </div>
+          <button class="change-btn" onclick="setState({submitted:false})">Change vote</button>
+        </div>
+      ` : `
+        <div class="vote-status">
+          <div>
+            <span class="remaining-label">Votes remaining: </span>
+            <span class="remaining-num" style="color:${rem>0?'#6366f1':'#9ca3af'}">${rem}</span>
+            <span class="remaining-label"> / ${MAX_VOTES}</span>
+          </div>
+          <div class="pips">
+            ${Array.from({length:MAX_VOTES}).map((_,i)=>`<div class="pip ${i<tot?'filled':''}"></div>`).join('')}
+          </div>
+        </div>
+      `}
+
+      <div class="team-list">
+        ${TEAMS.map(t => {
+          const isOwn = t.id === myTeamId;
+          const alloc = state.allocations[t.id] || 0;
+          return `
+          <div class="team-card ${isOwn?'own':alloc>0?'allocated':''}">
+            <div class="team-badge" style="background:${PALETTE[t.id-1]}22;color:${PALETTE[t.id-1]}">T${t.id}</div>
+            <div class="team-info">
+              <div class="team-name">${t.name}</div>
+              <div class="team-members">${isOwn?'Your team · cannot vote':t.members.join(', ')}</div>
+            </div>
+            ${!isOwn && !state.submitted ? `
+              <div class="vote-controls">
+                <button class="vote-btn" onclick="changeAllocation(${t.id},-1)" ${alloc===0?'disabled':''}>−</button>
+                <span class="vote-count ${alloc===0?'zero':''}">${alloc}</span>
+                <button class="vote-btn plus" onclick="changeAllocation(${t.id},1)" ${rem===0?'disabled':''}>+</button>
+              </div>
+            ` : ''}
+            ${!isOwn && state.submitted && alloc>0 ? `<div class="alloc-badge">×${alloc}</div>` : ''}
+          </div>`;
+        }).join('')}
+      </div>
+
+      ${!state.submitted ? `
+        <button class="submit-btn" onclick="handleSubmit()" ${tot===0||state.saving?'disabled':''}>
+          ${state.saving ? 'Saving…' : `Submit ${tot} vote${tot!==1?'s':''}`}
+        </button>
+      ` : ''}
+    ` : ''}
+  </div>
+  ` : ''}
+
+  ${state.view === 'results' ? `
+  <div>
+    ${state.loading ? '<p class="loading">Loading results…</p>' : `
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-label">Total votes cast</div><div class="stat-value">${Object.values(state.votes).reduce((s,a)=>s+Object.values(a).reduce((x,y)=>x+y,0),0)}</div></div>
+        <div class="stat-card"><div class="stat-label">Voters participated</div><div class="stat-value">${votersWhoVoted.length}</div></div>
+        <div class="stat-card"><div class="stat-label">Yet to vote</div><div class="stat-value">${votersNotVoted.length}</div></div>
+      </div>
+      <div class="results-list">
+        ${tallyData.map((t,i) => `
+          <div class="result-row">
+            <span class="result-rank">#${i+1}</span>
+            <div class="result-badge" style="background:${PALETTE[t.id-1]}22;color:${PALETTE[t.id-1]}">T${t.id}</div>
+            <span class="result-name">${t.name}</span>
+            <div class="result-bar-wrap">
+              <div class="result-bar" style="width:${t.total>0?(t.total/maxV*100):0}%;background:linear-gradient(90deg,${PALETTE[t.id-1]}cc,${PALETTE[t.id-1]});box-shadow:${t.total>0?`0 0 8px ${PALETTE[t.id-1]}66`:'none'}"></div>
+            </div>
+            <span class="result-total" style="color:${t.total>0?PALETTE[t.id-1]:'#9ca3af'}">${t.total}</span>
+          </div>
+        `).join('')}
+      </div>
+      ${votersNotVoted.length>0 ? `
+        <div class="still-voting">
+          <div class="still-voting-title">Still to vote (${votersNotVoted.length})</div>
+          <div class="still-voting-names">
+            ${votersNotVoted.map(n=>`<span class="name-chip">${n.split(',')[0]}</span>`).join('')}
+          </div>
+        </div>
+      ` : ''}
+      <button class="refresh-btn" onclick="loadVotes()">↻ Refresh results</button>
+    `}
+  </div>
+  ` : ''}
+
+  ${state.view === 'admin' ? `
+  <div>
+    ${!state.adminUnlocked ? `
+      <div class="admin-unlock">
+        <p>Enter the admin password to manage votes.</p>
+        <input type="password" class="admin-input" placeholder="Admin password" value="${state.adminKey}"
+          oninput="setState({adminKey:this.value})"
+          onkeydown="if(event.key==='Enter'){if(state.adminKey==='${ADMIN_PASS}')setState({adminUnlocked:true});else showToast('Incorrect password','error');}">
+        <button class="admin-unlock-btn" onclick="if(state.adminKey==='${ADMIN_PASS}')setState({adminUnlocked:true});else showToast('Incorrect password','error')">Unlock</button>
+      </div>
+    ` : `
+      <div class="admin-header">
+        <h2>All submitted votes</h2>
+        <button class="reset-btn" onclick="handleAdminReset()">Reset all votes</button>
+      </div>
+      ${votersWhoVoted.length===0 ? '<p style="color:#6b7280;font-size:14px">No votes submitted yet.</p>' : `
+        ${votersWhoVoted.map(voter => {
+          const alloc = state.votes[voter];
+          const team = getTeamForMember(voter);
+          return `
+          <div class="admin-vote-row">
+            <div class="admin-vote-info">
+              <span class="admin-vote-name">${voter}</span>
+              <span class="admin-vote-team">(T${team?.id})</span>
+              <div class="admin-vote-detail">${Object.entries(alloc).map(([tid,n])=>`Team ${tid} ×${n}`).join(' · ')}</div>
+            </div>
+            <button class="remove-btn" onclick="handleAdminDelete(${JSON.stringify(voter)})">Remove</button>
+          </div>`;
+        }).join('')}
+      `}
+    `}
+  </div>
+  ` : ''}
+
+  ${state.toast ? `<div class="toast ${state.toast.type}">${state.toast.msg}</div>` : ''}
+  `;
+
+  // Init canvas after render
+  const canvas = document.getElementById("neuralCanvas");
+  if (canvas) initBanner(canvas);
+
+  // Close picker on outside click
+  const pickerBtn = document.getElementById("pickerBtn");
+  if (pickerBtn) {
+    pickerBtn.onclick = (e) => { e.stopPropagation(); setState({ pickerOpen: !state.pickerOpen }); };
+  }
+}
+
+// Close picker on outside click
+document.addEventListener("click", (e) => {
+  if (state.pickerOpen && !e.target.closest("#pickerWrap")) {
+    setState({ pickerOpen: false });
+  }
+});
+
+// Boot
+render();
+loadVotes();
+</script>
+</body>
+</html>
