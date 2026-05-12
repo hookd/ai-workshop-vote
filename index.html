@@ -354,7 +354,7 @@ function render() {
               <span>${t.name}</span><span class="focus">— ${t.focus}</span>
             </div>
             ${t.members.map(m => `
-              <div class="picker-member ${state.selectedVoter===m?'selected':''}" onclick="selectVoter(${JSON.stringify(m)})">
+              <div class="picker-member ${state.selectedVoter===m?'selected':''}" onmousedown="event.preventDefault();event.stopPropagation();selectVoter(${JSON.stringify(m)})">
                 <span class="member-dot" style="background:${PALETTE[t.id-1]};box-shadow:0 0 5px ${PALETTE[t.id-1]}99"></span>
                 <span style="color:${PALETTE[t.id-1]};font-weight:${state.selectedVoter===m?700:400}">${m}</span>
                 ${state.selectedVoter===m?`<span class="check" style="color:${PALETTE[t.id-1]}">✓</span>`:''}
@@ -504,7 +504,8 @@ function render() {
 
 // Close picker on outside click
 document.addEventListener("click", (e) => {
-  if (state.pickerOpen && !e.target.closest("#pickerWrap")) {
+  const wrap = document.getElementById("pickerWrap");
+  if (state.pickerOpen && wrap && !wrap.contains(e.target)) {
     setState({ pickerOpen: false });
   }
 });
