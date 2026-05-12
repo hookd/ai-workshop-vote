@@ -37,17 +37,9 @@
   .picker-btn .arrow { color: #9ca3af; font-size: 11px; transition: transform 0.2s; }
   .picker-btn.open .arrow { transform: rotate(180deg); }
   .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
-  .picker-dropdown { position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 100; background: #fff; border: 1.5px solid #6366f1; border-radius: 10px; box-shadow: 0 8px 32px rgba(0,0,0,0.18); overflow: hidden; }
-  .picker-search-wrap { padding: 8px 10px; border-bottom: 1px solid #e5e7eb; background: #fff; }
-  .picker-search { width: 100%; padding: 6px 10px; font-size: 13px; border-radius: 6px; border: 1px solid #d1d5db; background: #f3f4f6; color: #111827; font-family: inherit; }
-  .picker-list { max-height: 280px; overflow-y: auto; background: #fff; }
-  .picker-group-header { padding: 5px 12px 3px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; background: #f3f4f6; display: flex; align-items: center; gap: 6px; border-left: 3px solid; }
-  .picker-group-header span.focus { font-weight: 400; opacity: 0.7; }
-  .picker-member { padding: 8px 14px 8px 18px; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 8px; background: #fff; transition: background 0.1s; }
-  .picker-member:hover, .picker-member.selected { background: #f0f0ff; }
-  .picker-member .member-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-  .picker-member .check { margin-left: auto; font-size: 12px; }
-  .picker-empty { padding: 16px; font-size: 13px; color: #6b7280; text-align: center; background: #fff; }
+  /* Native select */
+  .voter-select { width: 100%; max-width: 420px; padding: 9px 12px; font-size: 14px; border-radius: 8px; border: 1.5px solid #d1d5db; background: #fff; color: #111827; font-family: inherit; cursor: pointer; }
+  .voter-select:focus { outline: none; border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.15); }
 
   /* Vote status bar */
   .vote-status { background: #f3f4f6; border-radius: 10px; padding: 10px 14px; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 12px; }
@@ -304,7 +296,6 @@ function render() {
   const tot = totalAllocated();
   const rem = remaining();
 
-  // Filtered teams for picker
   const filtered = TEAMS.map(t => ({ ...t, members: t.members.filter(m => m.toLowerCase().includes(state.pickerSearch.toLowerCase())) })).filter(t=>t.members.length>0);
   const selTeam = state.selectedVoter ? getTeamForMember(state.selectedVoter) : null;
 
@@ -332,38 +323,17 @@ function render() {
 
   ${state.view === 'vote' ? `
   <div>
-    <!-- Voter Picker -->
-    <div class="picker-wrap" id="pickerWrap">
+    <!-- Native voter select -->
+    <div style="margin-bottom:1.5rem">
       <label class="picker-label">Who are you?</label>
-      <button class="picker-btn ${state.pickerOpen?'open':''}" id="pickerBtn">
-        ${state.selectedVoter && selTeam ? `
-          <span class="dot" style="background:${PALETTE[selTeam.id-1]};box-shadow:0 0 6px ${PALETTE[selTeam.id-1]}"></span>
-          <span class="voter-name" style="color:${PALETTE[selTeam.id-1]}">${state.selectedVoter}</span>
-          <span class="team-label">Team ${selTeam.id}</span>
-        ` : `<span class="placeholder">Select your name…</span>`}
-        <span class="arrow">▼</span>
-      </button>
-      ${state.pickerOpen ? `
-      <div class="picker-dropdown" id="pickerDropdown">
-        <div class="picker-search-wrap">
-          <input class="picker-search" id="pickerSearch" placeholder="Search name…" value="${state.pickerSearch}" oninput="setState({pickerSearch:this.value})" autofocus>
-        </div>
-        <div class="picker-list">
-          ${filtered.map(t => `
-            <div class="picker-group-header" style="color:${PALETTE[t.id-1]};border-left-color:${PALETTE[t.id-1]}">
-              <span>${t.name}</span><span class="focus">— ${t.focus}</span>
-            </div>
-            ${t.members.map(m => `
-              <div class="picker-member ${state.selectedVoter===m?'selected':''}" onmousedown="event.preventDefault();event.stopPropagation();selectVoter(${JSON.stringify(m)})">
-                <span class="member-dot" style="background:${PALETTE[t.id-1]};box-shadow:0 0 5px ${PALETTE[t.id-1]}99"></span>
-                <span style="color:${PALETTE[t.id-1]};font-weight:${state.selectedVoter===m?700:400}">${m}</span>
-                ${state.selectedVoter===m?`<span class="check" style="color:${PALETTE[t.id-1]}">✓</span>`:''}
-              </div>
-            `).join('')}
-          `).join('')}
-          ${filtered.length===0?'<div class="picker-empty">No names found</div>':''}
-        </div>
-      </div>` : ''}
+      <select class="voter-select" onchange="selectVoter(this.value)">
+        <option value="">Select your name…</option>
+        ${TEAMS.map(t => `
+          <optgroup label="${t.name} — ${t.focus}">
+            ${t.members.map(m => `<option value="${m}" ${state.selectedVoter===m?'selected':''}>${m}</option>`).join('')}
+          </optgroup>
+        `).join('')}
+      </select>
     </div>
 
     ${state.selectedVoter ? `
@@ -494,21 +464,7 @@ function render() {
   // Init canvas after render
   const canvas = document.getElementById("neuralCanvas");
   if (canvas) initBanner(canvas);
-
-  // Close picker on outside click
-  const pickerBtn = document.getElementById("pickerBtn");
-  if (pickerBtn) {
-    pickerBtn.onclick = (e) => { e.stopPropagation(); setState({ pickerOpen: !state.pickerOpen }); };
-  }
 }
-
-// Close picker on outside click
-document.addEventListener("click", (e) => {
-  const wrap = document.getElementById("pickerWrap");
-  if (state.pickerOpen && wrap && !wrap.contains(e.target)) {
-    setState({ pickerOpen: false });
-  }
-});
 
 // Boot
 render();
